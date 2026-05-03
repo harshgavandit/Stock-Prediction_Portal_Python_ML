@@ -10,6 +10,7 @@ const AuthProvider = ({children}) => {
   return (
     <AuthContext.Provider value={{isLoggedIn, setIsLoggedIn}}>
         {children}
+        {/* basically the children means all the app components   */}
     </AuthContext.Provider>
   )
 }
