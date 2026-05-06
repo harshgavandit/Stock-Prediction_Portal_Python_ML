@@ -3,18 +3,12 @@ from rest_framework.views import APIView
 from .serializers import StockPredictionSerializer
 from rest_framework import status
 from rest_framework.response import Response
-import yfinance as yf
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
 from datetime import datetime
 import os
 from django.conf import settings
 from .utils import save_plot
 from sklearn.preprocessing import MinMaxScaler
-from keras.models import load_model
 from sklearn.metrics import mean_squared_error, r2_score
-
 
 
 class StockPredictionAPIView(APIView):
@@ -22,19 +16,39 @@ class StockPredictionAPIView(APIView):
         serializer = StockPredictionSerializer(data=request.data)
         if serializer.is_valid():
             ticker = serializer.validated_data['ticker']
+            import yfinance as yf
+            import pandas as pd
+            import numpy as np
+            import matplotlib.pyplot as plt
 
             # Fetch the data from yfinance
             now = datetime.now()
             start = datetime(now.year-10, now.month, now.day)
             end = now
-            df = yf.download(ticker, start, end)
+            try:
+                df = yf.download(ticker, start, end)
+                if df.empty:
+                    # Attempt fallback with Ticker.history when download returns empty
+                    ticker_obj = yf.Ticker(ticker)
+                    df = ticker_obj.history(start=start, end=end)
+            except Exception as exc:
+                return Response({
+                    "error": "Unable to fetch stock data for the given ticker.",
+                    "details": str(exc),
+                    "status": status.HTTP_404_NOT_FOUND
+                }, status=status.HTTP_404_NOT_FOUND)
+
             if df.empty:
-                return Response({"error": "No data found for the given ticker.",
-                                 'status': status.HTTP_404_NOT_FOUND})
+                return Response({
+                    "error": "No data found for the given ticker.",
+                    "details": "Please verify the ticker symbol and exchange suffix (for example, .NS for NSE).",
+                    'status': status.HTTP_404_NOT_FOUND
+                }, status=status.HTTP_404_NOT_FOUND)
+
             df = df.reset_index()
             # Generate Basic Plot
             plt.switch_backend('AGG')
-            plt.figure(figsize=(12, 5))
+            plt.figure(figsize=(20, 8), dpi=150)
             plt.plot(df.Close, label='Closing Price')
             plt.title(f'Closing price of {ticker}')
             plt.xlabel('Days')
@@ -47,7 +61,7 @@ class StockPredictionAPIView(APIView):
             # 100 Days moving average
             ma100 = df.Close.rolling(100).mean()
             plt.switch_backend('AGG')
-            plt.figure(figsize=(12, 5))
+            plt.figure(figsize=(20, 8), dpi=150)
             plt.plot(df.Close, label='Closing Price')
             plt.plot(ma100, 'r', label='100 DMA')
             plt.title(f'100 Days Moving Average of {ticker}')
@@ -60,7 +74,7 @@ class StockPredictionAPIView(APIView):
             # 200 Days moving average
             ma200 = df.Close.rolling(200).mean()
             plt.switch_backend('AGG')
-            plt.figure(figsize=(12, 5))
+            plt.figure(figsize=(20, 8), dpi=150)
             plt.plot(df.Close, label='Closing Price')
             plt.plot(ma100, 'r', label='100 DMA')
             plt.plot(ma200, 'g', label='200 DMA')
@@ -78,7 +92,8 @@ class StockPredictionAPIView(APIView):
             # Scaling down the data between 0 and 1
             scaler = MinMaxScaler(feature_range=(0,1))
 
-            # Load ML Model
+            # Load ML Model lazily to avoid importing Keras at module import time
+            from keras.models import load_model
             model = load_model('stock_prediction_model.keras')
 
             # Preparing Test Data
@@ -102,7 +117,7 @@ class StockPredictionAPIView(APIView):
 
             # Plot the final prediction
             plt.switch_backend('AGG')
-            plt.figure(figsize=(12, 5))
+            plt.figure(figsize=(20, 8), dpi=150)
             plt.plot(y_test, 'b', label='Original Price')
             plt.plot(y_predicted, 'r', label='Predicted Price')
             plt.title(f'Final Prediction for {ticker}')
@@ -132,4 +147,58 @@ class StockPredictionAPIView(APIView):
                 'mse': mse,
                 'rmse': rmse,
                 'r2': r2
+                })
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class LivePriceAPIView(APIView):
+    """Fetch live prices for multiple tickers."""
+    
+    def post(self, request):
+        """
+        Fetch current prices for given tickers.
+        Expected POST data: {'tickers': ['RELIANCE.NS', 'TCS.NS']}
+        """
+        import yfinance as yf
+        tickers = request.data.get('tickers', [])
+        
+        if not tickers or not isinstance(tickers, list):
+            return Response({
+                'error': 'Please provide a list of tickers.',
+                'status': status.HTTP_400_BAD_REQUEST
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        prices = {}
+        for ticker in tickers:
+            try:
+                ticker_obj = yf.Ticker(ticker)
+                hist = ticker_obj.history(period='1d')
+                
+                if hist.empty:
+                    prices[ticker] = {
+                        'price': None,
+                        'change': None,
+                        'error': 'No data found'
+                    }
+                else:
+                    close_price = hist['Close'].iloc[-1]
+                    open_price = hist['Open'].iloc[-1]
+                    change = close_price - open_price
+                    
+                    prices[ticker] = {
+                        'price': round(float(close_price), 2),
+                        'change': round(float(change), 2),
+                        'percent_change': round((change / open_price) * 100, 2) if open_price != 0 else 0
+                    }
+            except Exception as e:
+                prices[ticker] = {
+                    'price': None,
+                    'change': None,
+                    'error': str(e)
+                }
+        
+        return Response({
+            'status': 'success',
+            'prices': prices
                 })

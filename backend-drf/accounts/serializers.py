@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
+from .models import UserPortfolio
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -23,3 +24,27 @@ class UserSerializer(serializers.ModelSerializer):
         # username , email and password then we use this method directly
         # instead of create_user above method 
         return user
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True, min_length=8, style={'input_type': 'password'})
+
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'password']
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        instance = super().update(instance, validated_data)
+        if password:
+            instance.set_password(password)
+            instance.save()
+        return instance
+
+
+class PortfolioSerializer(serializers.ModelSerializer):
+    """Serialize UserPortfolio model."""
+    class Meta:
+        model = UserPortfolio
+        fields = ['tickers', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']

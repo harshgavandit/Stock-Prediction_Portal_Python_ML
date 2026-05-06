@@ -7,6 +7,7 @@ import Main from './components/Main'
 import Login from './components/Login'
 import Register from './components/Register'
 import Dashboard from './components/dashboard/Dashboard'
+import Profile from './components/Profile'
 import PrivateRoute from './PrivateRoute'
 import PublicRoute from './PublicRoute'
 
@@ -41,6 +42,14 @@ function App() {
                 element={
                   <PrivateRoute>
                     <Dashboard />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <PrivateRoute>
+                    <Profile />
                   </PrivateRoute>
                 }
               />

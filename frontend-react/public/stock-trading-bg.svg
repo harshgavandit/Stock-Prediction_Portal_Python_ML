@@ -1,0 +1,47 @@
+<svg width="1920" height="1080" viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#07111f" />
+      <stop offset="100%" stop-color="#0b1c36" />
+    </linearGradient>
+    <linearGradient id="lineGlow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#4f9fff" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#85f3ff" stop-opacity="0.75" />
+    </linearGradient>
+    <radialGradient id="dotGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#92d8ff" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#92d8ff" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#bgGradient)" />
+  <g opacity="0.38" filter="url(#blur)">
+    <path d="M90 300C260 190 460 250 620 165C760 100 960 230 1120 145C1240 90 1410 220 1560 170C1730 110 1850 230 1920 220" stroke="#74c7ff" stroke-width="4" stroke-linecap="round" />
+    <path d="M90 780C210 720 320 810 470 762C620 720 760 850 920 793C1030 760 1180 840 1320 790C1450 745 1590 860 1720 810C1830 768 1920 790 1920 790" stroke="#d5a9ff" stroke-width="4" stroke-linecap="round" />
+  </g>
+  <g opacity="0.9">
+    <path d="M136 380L262 317L407 386L523 332L643 420L759 384L867 455L985 387L1120 452L1247 388L1368 456L1492 388L1618 425L1734 381" stroke="url(#lineGlow)" stroke-width="7" stroke-linecap="round" fill="none" />
+    <path d="M141 820L253 752L392 835L515 784L637 862L762 810L883 888L1001 840L1123 910L1248 842L1369 920L1497 862L1612 937L1730 880" stroke="#6ef3c7" stroke-width="7" stroke-linecap="round" fill="none" />
+  </g>
+  <circle cx="523" cy="332" r="26" fill="url(#dotGlow)" />
+  <circle cx="523" cy="332" r="8" fill="#bbf0ff" />
+  <circle cx="1120" cy="452" r="22" fill="url(#dotGlow)" />
+  <circle cx="1120" cy="452" r="6" fill="#9cdbff" />
+  <circle cx="673" cy="420" r="18" fill="url(#dotGlow)" />
+  <circle cx="673" cy="420" r="5" fill="#8fcfff" />
+  <circle cx="1492" cy="388" r="20" fill="url(#dotGlow)" />
+  <circle cx="1492" cy="388" r="5" fill="#a4e2ff" />
+  <g opacity="0.75">
+    <path d="M1160 130L1420 180L1450 235L1230 220Z" fill="#6198ff" />
+    <path d="M1180 140L1430 190L1460 245L1250 230Z" stroke="#b8d8ff" stroke-width="2" fill="none" />
+  </g>
+  <g opacity="0.8">
+    <path d="M320 840L430 790L465 850L375 900Z" fill="#5ff3aa" />
+    <path d="M345 831L456 780L491 840L402 892Z" stroke="#def9ff" stroke-width="2" fill="none" />
+  </g>
+  <rect x="150" y="170" width="260" height="120" rx="28" fill="rgba(23, 46, 78, 0.62)" />
+  <text x="230" y="210" fill="#f1f8ff" font-family="Inter, sans-serif" font-size="34" font-weight="700">STOCK</text>
+  <text x="230" y="250" fill="#9ebeed" font-family="Inter, sans-serif" font-size="20">Trading intelligence</text>
+  <rect x="1720" y="900" width="140" height="140" rx="24" fill="rgba(139, 187, 255, 0.12)" />
+  <path d="M1750 945L1818 945" stroke="#84c7ff" stroke-width="4" stroke-linecap="round" />
+  <path d="M1778 925L1778 977" stroke="#84c7ff" stroke-width="4" stroke-linecap="round" />
+</svg>
