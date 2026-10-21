@@ -1,0 +1,4 @@
+-r requirements.txt
+h5py==3.16.0
+# For regenerating the TensorFlow reference only, use a separate environment:
+# pip install tensorflow-cpu==2.21.0 threadpoolctl==3.7.0

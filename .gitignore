@@ -187,3 +187,20 @@ thumb
 sketch
 
 # End of https://www.toptal.com/developers/gitignore/api/django,react
+
+.env.*
+!.env.example
+.vercel/
+.tmp/
+.model-venv/
+staticfiles/
+playwright-report/
+test-results/
+
+.vercel
+.env*
+
+# Generated integration helper skills are local tooling.
+.agents/
+skills-lock.json
+!.env.example

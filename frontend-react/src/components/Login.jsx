@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react'
+import { useContext, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSpinner } from '@fortawesome/free-solid-svg-icons'
 import axiosInstance from '../axiosInstance'
@@ -28,9 +28,8 @@ const Login = () => {
       setUser(profileResponse.data.user ?? { username })
       setIsLoggedIn(true)
       navigate('/dashboard')
-    } catch (error) {
+    } catch {
       setError('Invalid credentials. Please try again.')
-      console.error('Invalid credentials', error)
     } finally {
       setLoading(false)
     }
@@ -48,10 +47,10 @@ const Login = () => {
 
           <form onSubmit={handleLogin}>
             <div className='mb-3'>
-              <input type='text' className='form-control' placeholder='Username' value={username} onChange={(e) => setUsername(e.target.value)} />
+              <input type='text' aria-label='Username' autoComplete='username' required className='form-control' placeholder='Username' value={username} onChange={(e) => setUsername(e.target.value)} />
             </div>
             <div className='mb-3'>
-              <input type='password' className='form-control' placeholder='Password' value={password} onChange={(e) => setPassword(e.target.value)} />
+              <input type='password' aria-label='Password' autoComplete='current-password' required minLength={8} className='form-control' placeholder='Password' value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
 
             {error && <div className='alert alert-error'>{error}</div>}

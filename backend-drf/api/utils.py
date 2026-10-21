@@ -1,12 +1,10 @@
-import os
-from django.conf import settings
-import matplotlib.pyplot as plt
+"""Return chart bytes in the response rather than persisting server-local files."""
+import base64
+from io import BytesIO
 
 
-def save_plot(plot_img_path):
-    image_path = os.path.join(settings.MEDIA_ROOT, plot_img_path)
-    os.makedirs(os.path.dirname(image_path), exist_ok=True)
-    plt.savefig(image_path, dpi=150, bbox_inches='tight', pad_inches=0.25)
-    plt.close()
-    image_url = settings.MEDIA_URL + plot_img_path
-    return image_url
+def plot_data_uri(figure):
+    output = BytesIO()
+    figure.savefig(output, format="png", dpi=100, bbox_inches="tight", pad_inches=0.2)
+    figure.clear()
+    return "data:image/png;base64," + base64.b64encode(output.getvalue()).decode("ascii")

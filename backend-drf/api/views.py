@@ -1,204 +1,124 @@
-from django.shortcuts import render
-from rest_framework.views import APIView
-from .serializers import StockPredictionSerializer
+import logging
+import threading
+
+import numpy as np
+from django.core.cache import cache
+from django.db import connection
 from rest_framework import status
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from datetime import datetime
-import os
-from django.conf import settings
-from .utils import save_plot
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.metrics import mean_squared_error, r2_score
+from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.views import APIView
+
+from .inference import predict, weights
+from .market import MarketDataError, history, prices
+from .serializers import LivePriceSerializer, StockPredictionSerializer
+from .utils import plot_data_uri
+
+logger = logging.getLogger(__name__)
+plot_lock = threading.Lock()
+
+
+class HealthAPIView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+            weights()
+            return Response({"status": "ok", "database": "connected", "model": "ready"})
+        except Exception:
+            logger.exception("Readiness check failed")
+            return Response({"status": "unavailable"}, status=503)
+
+
+def _moving_average(values, window):
+    if len(values) < window:
+        return np.full(len(values), np.nan)
+    return np.concatenate([np.full(window - 1, np.nan),
+                           np.convolve(values, np.ones(window) / window, mode="valid")])
+
+
+def _chart(title, series):
+    # Matplotlib's renderer is not thread-safe. Figures never touch shared pyplot state.
+    from matplotlib.figure import Figure
+    with plot_lock:
+        figure = Figure(figsize=(10, 4))
+        axis = figure.subplots()
+        for values, label, color in series:
+            axis.plot(values, label=label, color=color, linewidth=1.2)
+        axis.set(title=title, xlabel="Trading sessions", ylabel="Closing price")
+        axis.legend()
+        axis.grid(alpha=0.15)
+        figure.tight_layout()
+        return plot_data_uri(figure)
 
 
 class StockPredictionAPIView(APIView):
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "prediction"
+
     def post(self, request):
         serializer = StockPredictionSerializer(data=request.data)
-        if serializer.is_valid():
-            ticker = serializer.validated_data['ticker']
-            import yfinance as yf
-            import pandas as pd
-            import numpy as np
-            import matplotlib.pyplot as plt
-
-            # Fetch the data from yfinance
-            now = datetime.now()
-            start = datetime(now.year-10, now.month, now.day)
-            end = now
-            try:
-                df = yf.download(ticker, start, end)
-                if df.empty:
-                    # Attempt fallback with Ticker.history when download returns empty
-                    ticker_obj = yf.Ticker(ticker)
-                    df = ticker_obj.history(start=start, end=end)
-            except Exception as exc:
-                return Response({
-                    "error": "Unable to fetch stock data for the given ticker.",
-                    "details": str(exc),
-                    "status": status.HTTP_404_NOT_FOUND
-                }, status=status.HTTP_404_NOT_FOUND)
-
-            if df.empty:
-                return Response({
-                    "error": "No data found for the given ticker.",
-                    "details": "Please verify the ticker symbol and exchange suffix (for example, .NS for NSE).",
-                    'status': status.HTTP_404_NOT_FOUND
-                }, status=status.HTTP_404_NOT_FOUND)
-
-            df = df.reset_index()
-            # Generate Basic Plot
-            plt.switch_backend('AGG')
-            plt.figure(figsize=(20, 8), dpi=150)
-            plt.plot(df.Close, label='Closing Price')
-            plt.title(f'Closing price of {ticker}')
-            plt.xlabel('Days')
-            plt.ylabel('Price')
-            plt.legend()
-            # Save the plot to a file
-            plot_img_path = f'{ticker}_plot.png'
-            plot_img = save_plot(plot_img_path)
-            
-            # 100 Days moving average
-            ma100 = df.Close.rolling(100).mean()
-            plt.switch_backend('AGG')
-            plt.figure(figsize=(20, 8), dpi=150)
-            plt.plot(df.Close, label='Closing Price')
-            plt.plot(ma100, 'r', label='100 DMA')
-            plt.title(f'100 Days Moving Average of {ticker}')
-            plt.xlabel('Days')
-            plt.ylabel('Price')
-            plt.legend()
-            plot_img_path = f'{ticker}_100_dma.png'
-            plot_100_dma = save_plot(plot_img_path)
-
-            # 200 Days moving average
-            ma200 = df.Close.rolling(200).mean()
-            plt.switch_backend('AGG')
-            plt.figure(figsize=(20, 8), dpi=150)
-            plt.plot(df.Close, label='Closing Price')
-            plt.plot(ma100, 'r', label='100 DMA')
-            plt.plot(ma200, 'g', label='200 DMA')
-            plt.title(f'200 Days Moving Average of {ticker}')
-            plt.xlabel('Days')
-            plt.ylabel('Price')
-            plt.legend()
-            plot_img_path = f'{ticker}_200_dma.png'
-            plot_200_dma = save_plot(plot_img_path)
-
-            # Splitting data into Training & Testing datasets
-            data_training = pd.DataFrame(df.Close[0:int(len(df)*0.7)])
-            data_testing = pd.DataFrame(df.Close[int(len(df)*0.7): int(len(df))])
-
-            # Scaling down the data between 0 and 1
-            scaler = MinMaxScaler(feature_range=(0,1))
-
-            # Load ML Model lazily to avoid importing Keras at module import time
-            from keras.models import load_model
-            model = load_model('stock_prediction_model.keras')
-
-            # Preparing Test Data
-            past_100_days = data_training.tail(100)
-            final_df = pd.concat([past_100_days, data_testing], ignore_index=True)
-            input_data = scaler.fit_transform(final_df)
-
-            x_test = []
-            y_test = []
-            for i in range(100, input_data.shape[0]):
-                x_test.append(input_data[i-100: i])
-                y_test.append(input_data[i, 0])
-            x_test, y_test = np.array(x_test), np.array(y_test)
-
-            # Making Predictions
-            y_predicted = model.predict(x_test)
-
-            # Revert the scaled prices to original price
-            y_predicted = scaler.inverse_transform(y_predicted.reshape(-1, 1)).flatten()
-            y_test = scaler.inverse_transform(y_test.reshape(-1, 1)).flatten()
-
-            # Plot the final prediction
-            plt.switch_backend('AGG')
-            plt.figure(figsize=(20, 8), dpi=150)
-            plt.plot(y_test, 'b', label='Original Price')
-            plt.plot(y_predicted, 'r', label='Predicted Price')
-            plt.title(f'Final Prediction for {ticker}')
-            plt.xlabel('Days')
-            plt.ylabel('Price')
-            plt.legend()
-            plot_img_path = f'{ticker}_final_prediction.png'
-            plot_prediction = save_plot(plot_img_path)
-
-            # Model Evaluation
-            # Mean Squared Error (MSE)
-            mse = mean_squared_error(y_test, y_predicted)
-
-            # Root Mean Squared Error (RMSE)
-            rmse = np.sqrt(mse)
-
-            # R-Squared
-            r2 = r2_score(y_test, y_predicted)
-
-
-            return Response({
-                'status': 'success',
-                'plot_img': plot_img,
-                'plot_100_dma': plot_100_dma,
-                'plot_200_dma': plot_200_dma,
-                'plot_prediction': plot_prediction,
-                'mse': mse,
-                'rmse': rmse,
-                'r2': r2
-                })
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        ticker = serializer.validated_data["ticker"]
+        cache_key = f"prediction:v1:{ticker}"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+        try:
+            data = history(ticker)
+        except MarketDataError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        closes = np.asarray(data["close"], dtype=np.float64)
+        split = int(len(closes) * 0.7)
+        if split < 100 or len(closes) - split < 2:
+            return Response({"error": "At least 145 daily closing prices are needed for this model."}, status=422)
+        # Fit on the first 70% only: evaluation prices must not influence scaling.
+        lower = float(closes[:split].min())
+        scale = float(closes[:split].max() - lower) or 1.0
+        scaled = ((closes - lower) / scale).astype(np.float32)
+        windows = np.lib.stride_tricks.sliding_window_view(scaled, 100)
+        sequences = windows[split - 100:-1, :, None]
+        actual = closes[split:]
+        try:
+            estimates = predict(sequences).ravel().astype(np.float64) * scale + lower
+            next_close = float(predict(scaled[-100:].reshape(1, 100, 1))[0, 0]) * scale + lower
+            residual = actual - estimates
+            mse = float(np.mean(residual ** 2))
+            variance = float(np.sum((actual - actual.mean()) ** 2))
+            r2 = float(1 - np.sum(residual ** 2) / variance) if variance else 0.0
+            if not np.isfinite([mse, r2, next_close]).all():
+                raise ValueError("Non-finite model result")
+            average100 = _moving_average(closes, 100)
+            average200 = _moving_average(closes, 200)
+            result = {
+                "status": "success", "ticker": ticker,
+                "plot_img": _chart(f"{ticker}: closing prices", [(closes, "Close", "#2563eb")]),
+                "plot_100_dma": _chart(f"{ticker}: 100-day moving average",
+                    [(closes, "Close", "#2563eb"), (average100, "100 DMA", "#dc2626")]),
+                "plot_200_dma": _chart(f"{ticker}: moving averages",
+                    [(closes, "Close", "#2563eb"), (average100, "100 DMA", "#dc2626"),
+                     (average200, "200 DMA", "#16a34a")]),
+                "plot_prediction": _chart(f"{ticker}: historical model comparison",
+                    [(actual, "Actual close", "#2563eb"), (estimates, "LSTM estimate", "#dc2626")]),
+                "mse": mse, "rmse": float(np.sqrt(mse)), "r2": r2,
+                "next_close": next_close, "as_of": data["dates"][-1],
+                "currency": data["meta"].get("currency"), "source": data["source"],
+                "history_rows": len(closes), "evaluation_rows": len(actual),
+                "evaluation": "Historical comparison using the existing pretrained model; R-squared is not a probability.",
+            }
+            cache.set(cache_key, result, 900)
+            return Response(result)
+        except Exception:
+            logger.exception("Prediction failed for %s", ticker)
+            return Response({"error": "The prediction could not be generated. Please try again shortly."}, status=503)
 
 
 class LivePriceAPIView(APIView):
-    """Fetch live prices for multiple tickers."""
-    
     def post(self, request):
-        """
-        Fetch current prices for given tickers.
-        Expected POST data: {'tickers': ['RELIANCE.NS', 'TCS.NS']}
-        """
-        import yfinance as yf
-        tickers = request.data.get('tickers', [])
-        
-        if not tickers or not isinstance(tickers, list):
-            return Response({
-                'error': 'Please provide a list of tickers.',
-                'status': status.HTTP_400_BAD_REQUEST
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        prices = {}
-        for ticker in tickers:
-            try:
-                ticker_obj = yf.Ticker(ticker)
-                hist = ticker_obj.history(period='1d')
-                
-                if hist.empty:
-                    prices[ticker] = {
-                        'price': None,
-                        'change': None,
-                        'error': 'No data found'
-                    }
-                else:
-                    close_price = hist['Close'].iloc[-1]
-                    open_price = hist['Open'].iloc[-1]
-                    change = close_price - open_price
-                    
-                    prices[ticker] = {
-                        'price': round(float(close_price), 2),
-                        'change': round(float(change), 2),
-                        'percent_change': round((change / open_price) * 100, 2) if open_price != 0 else 0
-                    }
-            except Exception as e:
-                prices[ticker] = {
-                    'price': None,
-                    'change': None,
-                    'error': str(e)
-                }
-        
-        return Response({
-            'status': 'success',
-            'prices': prices
-                })
+        serializer = LivePriceSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response({"status": "success", "prices": prices(serializer.validated_data["tickers"])})

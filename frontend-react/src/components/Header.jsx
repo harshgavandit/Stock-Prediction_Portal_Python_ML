@@ -6,7 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowRightFromBracket, faMoon, faSun } from '@fortawesome/free-solid-svg-icons'
 
 const Header = () => {
-  const { isLoggedIn, setIsLoggedIn, user } = useContext(AuthContext)
+  const { isLoggedIn, setIsLoggedIn, user, setUser } = useContext(AuthContext)
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark')
   const [toastMessage, setToastMessage] = useState('')
   const navigate = useNavigate()
@@ -32,6 +32,7 @@ const Header = () => {
     localStorage.removeItem('accessToken')
     localStorage.removeItem('refreshToken')
     setIsLoggedIn(false)
+    setUser(null)
     navigate('/login')
   }
 

@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react'
+import { useState, useContext } from 'react'
 import axiosInstance from '../axiosInstance'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSpinner } from '@fortawesome/free-solid-svg-icons'
@@ -10,7 +10,6 @@ const Register = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errors, setErrors] = useState({})
-  const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const { setIsLoggedIn, setUser } = useContext(AuthContext)
@@ -18,7 +17,6 @@ const Register = () => {
   const handleRegistration = async (e) => {
     e.preventDefault()
     setLoading(true)
-    setSuccess(false)
     setErrors({})
 
     const userData = {
@@ -38,7 +36,6 @@ const Register = () => {
       navigate('/dashboard')
     } catch (error) {
       setErrors(error.response?.data || { non_field_errors: 'Registration failed. Please check your details.' })
-      console.error('Registration error: ', error.response?.data)
     } finally {
       setLoading(false)
     }
@@ -56,21 +53,21 @@ const Register = () => {
 
           <form onSubmit={handleRegistration}>
             <div className='mb-3'>
-              <input type='text' className='form-control' placeholder='Username' value={username} onChange={(e) => setUsername(e.target.value)} />
+              <input type='text' aria-label='Username' autoComplete='username' required className='form-control' placeholder='Username' value={username} onChange={(e) => setUsername(e.target.value)} />
               {errors.username && <div className='text-danger mt-2'>{errors.username}</div>}
             </div>
 
             <div className='mb-3'>
-              <input type='email' className='form-control' placeholder='Email address' value={email} onChange={(e) => setEmail(e.target.value)} />
+              <input type='email' aria-label='Email address' autoComplete='email' required className='form-control' placeholder='Email address' value={email} onChange={(e) => setEmail(e.target.value)} />
               {errors.email && <div className='text-danger mt-2'>{errors.email}</div>}
             </div>
 
             <div className='mb-3'>
-              <input type='password' className='form-control' placeholder='Password' value={password} onChange={(e) => setPassword(e.target.value)} />
+              <input type='password' aria-label='Password' autoComplete='new-password' required minLength={8} className='form-control' placeholder='Password' value={password} onChange={(e) => setPassword(e.target.value)} />
               {errors.password && <div className='text-danger mt-2'>{errors.password}</div>}
             </div>
 
-            {success && <div className='alert alert-success'>Registration successful. You may log in now.</div>}
+            {(errors.detail || errors.non_field_errors) && <div role='alert' className='alert alert-error'>{errors.detail || errors.non_field_errors}</div>}
 
             {loading ? (
               <button type='submit' className='btn btn-info d-block mx-auto' disabled>

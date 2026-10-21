@@ -6,19 +6,12 @@ import { faUserCircle, faShieldAlt } from '@fortawesome/free-solid-svg-icons'
 
 const Profile = () => {
   const { user, setUser } = useContext(AuthContext)
-  const [username, setUsername] = useState('')
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState(null)
+  const [email, setEmail] = useState(null)
   const [password, setPassword] = useState('')
   const [status, setStatus] = useState('')
   const [statusType, setStatusType] = useState('success')
   const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (user) {
-      setUsername(user.username || '')
-      setEmail(user.email || '')
-    }
-  }, [user])
 
   useEffect(() => {
     if (!status) return
@@ -42,12 +35,12 @@ const Profile = () => {
 
     try {
       const payload = {
-        username: username.trim(),
-        email: email.trim(),
+        username: (username ?? user.username).trim(),
+        email: (email ?? user.email).trim(),
       }
 
-      if (password.trim()) {
-        payload.password = password.trim()
+      if (password) {
+        payload.password = password
       }
 
       const response = await axiosInstance.patch('/profile/', payload)
@@ -103,36 +96,36 @@ const Profile = () => {
         </div>
 
         <form className='profile-form' onSubmit={handleSubmit}>
-          <label>Username</label>
+          <label htmlFor='profile-username'>Username</label>
           <input
-            type='text'
+            id='profile-username' type='text'
             className='form-control'
-            value={username}
+            value={username ?? user.username ?? ''}
             onChange={(e) => setUsername(e.target.value)}
             placeholder='Username'
             required
           />
 
-          <label>Email</label>
+          <label htmlFor='profile-email'>Email</label>
           <input
-            type='email'
+            id='profile-email' type='email'
             className='form-control'
-            value={email}
+            value={email ?? user.email ?? ''}
             onChange={(e) => setEmail(e.target.value)}
             placeholder='Email address'
             required
           />
 
-          <label>New password</label>
+          <label htmlFor='profile-password'>New password</label>
           <input
-            type='password'
+            id='profile-password' type='password' autoComplete='new-password' minLength={8}
             className='form-control'
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder='Leave blank to keep current password'
           />
 
-          <button type='submit' className='btn btn-primary' disabled={loading || !username.trim() || !email.trim()}>
+          <button type='submit' className='btn btn-primary' disabled={loading || !(username ?? user.username).trim() || !(email ?? user.email).trim()}>
             {loading ? 'Saving...' : 'Save changes'}
           </button>
 

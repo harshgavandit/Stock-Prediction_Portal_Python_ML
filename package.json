@@ -1,0 +1,1 @@
+{"name":"stock-prediction-portal-deployment","private":true,"scripts":{"dev":"npm --prefix frontend-react run dev","build":"npm --prefix frontend-react run build","lint":"npm --prefix frontend-react run lint"},"engines":{"node":"22.x"}}

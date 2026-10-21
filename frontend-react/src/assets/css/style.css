@@ -1358,3 +1358,10 @@ main {
     width: 100%;
   }
 }
+
+.analysis-summary { padding: 1.5rem; margin: 1.5rem 0; }
+.chart-preview-button { display: block; border: 0; padding: 0; width: 100%; background: transparent; cursor: zoom-in; }
+.watchlist-link { border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.feed-item small { max-width: 260px; white-space: normal; }
+button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+@media (max-width: 600px) { .app-actions { flex-wrap: wrap; } .navbar-brand { font-size: 1rem; } .auth-panel { padding: 1.5rem !important; } }

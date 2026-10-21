@@ -1,14 +1,14 @@
 from django.urls import path
 from accounts import views as UserViews
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .views import StockPredictionAPIView, LivePriceAPIView
+from .views import HealthAPIView, StockPredictionAPIView, LivePriceAPIView
 
 
 urlpatterns = [
+    path('health/', HealthAPIView.as_view(), name='health'),
     path('register/', UserViews.RegisterView.as_view()),
 
-    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('token/', UserViews.LoginView.as_view(), name='token_obtain_pair'),
+    path('token/refresh/', UserViews.RefreshView.as_view(), name='token_refresh'),
 
     path('protected-view/', UserViews.ProtectedView.as_view()),
     path('profile/', UserViews.ProfileView.as_view()),

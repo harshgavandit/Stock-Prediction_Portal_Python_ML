@@ -30,7 +30,10 @@ const AuthProvider = ({children}) => {
             }
         }
 
+        const clearSession = () => { setIsLoggedIn(false); setUser(null) }
+        window.addEventListener('session-expired', clearSession)
         verifySession()
+        return () => window.removeEventListener('session-expired', clearSession)
     }, [])
 
     return (

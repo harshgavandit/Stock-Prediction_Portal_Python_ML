@@ -1,0 +1,15 @@
+.git
+.venv
+.model-venv
+.tmp
+**/node_modules
+**/dist
+**/__pycache__
+**/*.sqlite3
+**/.env
+**/.env.*
+Resources
+test-results
+playwright-report
+.agents
+skills-lock.json

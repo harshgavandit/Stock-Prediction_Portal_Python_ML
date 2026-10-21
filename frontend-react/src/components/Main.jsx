@@ -1,4 +1,3 @@
-import React from 'react'
 import Button from './Button'
 
 const Main = () => {
@@ -7,8 +6,8 @@ const Main = () => {
       <section className='hero-panel glass-card'>
         <div className='hero-content'>
           <span className='eyebrow'>Machine Learning Meets Trading</span>
-          <h1 className='hero-title'>Predict stock movement with modern clarity.</h1>
-          <p className='hero-copy'>Explore intelligent forecasts powered by an LSTM model, moving average analysis, and a polished dashboard experience. Get instant insights for ticker symbols and visualize stock behavior in a complete prediction flow.</p>
+          <h1 className='hero-title'>Explore stock history with machine learning.</h1>
+          <p className='hero-copy'>Explore intelligent forecasts powered by an LSTM model, moving average analysis, and a polished dashboard experience. Compare historical prices with model estimates and save the symbols you follow.</p>
           <div className='hero-actions'>
             <Button text='Explore Now' class='btn-info' url='/dashboard' />
           </div>
@@ -19,20 +18,20 @@ const Main = () => {
 
           <div className='ticker-tape'>
             <div className='ticker-track'>
-              <span>RELIANCE.NS 2.34% ▲</span>
-              <span>HDFCBANK.NS 1.19% ▲</span>
-              <span>INFY.NS 0.87% ▼</span>
-              <span>TATAMOTORS.NS 0.42% ▲</span>
-              <span>NIFTY50 0.99% ▲</span>
+              <span>NSE · RELIANCE.NS</span>
+              <span>NSE · HDFCBANK.NS</span>
+              <span>NSE · INFY.NS</span>
+              <span>NASDAQ · AAPL</span>
+              <span>NASDAQ · TSLA</span>
             </div>
           </div>
 
           <div className='news-carousel glass-card'>
-            <p className='news-title'>Market news</p>
+            <p className='news-title'>Explore the model</p>
             <div className='news-list'>
-              <span>RELIANCE.NS set to lead the next energy rebound.</span>
-              <span>Global indices calm ahead of the earnings session.</span>
-              <span>AI-driven forecasts now delivering tighter confidence ranges.</span>
+              <span>Choose a supported ticker to load its price history.</span>
+              <span>Compare closing prices with 100-day and 200-day moving averages.</span>
+              <span>Review historical model error and an experimental next-session estimate.</span>
             </div>
           </div>
         </div>
@@ -41,7 +40,7 @@ const Main = () => {
           <div className='market-globe'>
             <div className='market-pulse'>
               <strong>RELIANCE.NS</strong>
-              <p>Market-ready forecast engine</p>
+              <p>Historical analysis and LSTM estimates</p>
             </div>
             <div className='market-ring market-ring-1' />
             <div className='market-ring market-ring-2' />
@@ -56,7 +55,7 @@ const Main = () => {
           </article>
           <article className='feature-card'>
             <h4>Intelligent forecasting</h4>
-            <p>Generate 100-day and 200-day moving average predictions from a trained Keras model.</p>
+            <p>Compare a trained LSTM model with price history alongside 100-day and 200-day moving averages.</p>
           </article>
           <article className='feature-card'>
             <h4>Secure portal</h4>

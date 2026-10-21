@@ -1,0 +1,12 @@
+{
+  "source": "stock_prediction_model.keras",
+  "sha256": "51a404360133f38e6fecbe8e99557a62f9e7e1ef0a4f73ed9669bcbb23bb76b3",
+  "architecture": "LSTM(128, sequences) -> LSTM(64) -> Dense(25) -> Dense(1)",
+  "window": 100,
+  "dtype": "float32",
+  "tensorflow_verification": {
+    "samples": 11,
+    "max_absolute_error": 2.384185791015625e-07,
+    "keras_version": "3.15.1"
+  }
+}
